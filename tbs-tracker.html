@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TBS Project Tracker</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f6fa;color:#1a1a2e;font-size:14px}
+  header{background:#1E3A5F;color:#fff;padding:16px 28px;display:flex;align-items:center;justify-content:space-between}
+  header h1{font-size:18px;font-weight:600;letter-spacing:.3px}
+  header .sub{font-size:11px;opacity:.7;margin-top:2px}
+  .header-right{display:flex;align-items:center;gap:10px}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:#4caf50;display:inline-block;margin-right:4px}
+  .status-txt{font-size:12px;opacity:.85}
+  .btn{padding:7px 16px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;transition:opacity .15s}
+  .btn:hover{opacity:.85}
+  .btn-white{background:#fff;color:#1E3A5F}
+  .btn-green{background:#27ae60;color:#fff}
+  .btn-blue{background:#2980b9;color:#fff}
+  .btn-red{background:#e74c3c;color:#fff}
+  .btn-sm{padding:4px 12px;font-size:12px}
+  .container{max-width:1200px;margin:0 auto;padding:20px 24px}
+  .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .scard{background:#fff;border-radius:10px;padding:14px 18px;border:1px solid #e8ecf0}
+  .scard .num{font-size:26px;font-weight:600}
+  .scard .lbl{font-size:11px;color:#888;margin-top:3px}
+  .toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .toolbar-left{display:flex;gap:8px}
+  .tbl-wrap{background:#fff;border-radius:10px;border:1px solid #e8ecf0;overflow:hidden}
+  table{width:100%;border-collapse:collapse;table-layout:fixed}
+  th{background:#f8f9fb;padding:10px 12px;font-size:11px;font-weight:600;color:#666;text-align:left;border-bottom:1px solid #e8ecf0;white-space:nowrap}
+  td{padding:0;border-bottom:1px solid #f0f2f5;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#fafbff}
+  td input,td select{width:100%;border:none;background:transparent;font-size:13px;font-family:inherit;color:#1a1a2e;padding:9px 12px;outline:none}
+  td input:focus,td select:focus{background:#eef4ff}
+  td select{cursor:pointer}
+  .badge{font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;display:inline-block}
+  .b-ip{background:#dbeafe;color:#1d4ed8}
+  .b-pl{background:#fef3c7;color:#92400e}
+  .b-pd{background:#f1f5f9;color:#475569}
+  .b-dn{background:#dcfce7;color:#166534}
+  .b-bl{background:#fee2e2;color:#991b1b}
+  .del-btn{background:none;border:none;cursor:pointer;color:#ccc;padding:8px 12px;font-size:16px;font-family:inherit}
+  .del-btn:hover{color:#e74c3c}
+  .warn{font-size:10px;margin-top:1px;padding:0 12px 3px}
+  .warn.ov{color:#dc2626}
+  .warn.sn{color:#d97706}
+  .warn.ok{color:#16a34a}
+  .add-row-btn{width:100%;padding:10px;background:#f8f9fb;border:none;border-top:1px solid #e8ecf0;cursor:pointer;color:#888;font-size:13px;font-family:inherit;text-align:left;padding-left:16px}
+  .add-row-btn:hover{background:#f0f2f8;color:#1E3A5F}
+  .toast{position:fixed;bottom:24px;right:24px;background:#1E3A5F;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+  .toast.show{opacity:1}
+  .loading{text-align:center;padding:40px;color:#aaa;font-size:13px}
+  .pct-bar{height:4px;background:#e8ecf0;border-radius:2px;margin:0 12px 6px}
+  .pct-fill{height:100%;border-radius:2px;background:#2980b9;transition:width .3s}
+  colgroup col:nth-child(1){width:180px}
+  colgroup col:nth-child(2){width:110px}
+  colgroup col:nth-child(3){width:60px}
+  colgroup col:nth-child(4){width:110px}
+  colgroup col:nth-child(5){width:120px}
+  colgroup col:nth-child(6){width:120px}
+  colgroup col:nth-child(7){width:120px}
+  colgroup col:nth-child(8){width:auto}
+  colgroup col:nth-child(9){width:40px}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>TBS Project Tracker</h1>
+    <div class="sub" id="updated-lbl">กำลังโหลด...</div>
+  </div>
+  <div class="header-right">
+    <span><span class="status-dot" id="dot"></span><span class="status-txt" id="conn-txt">กำลังเชื่อมต่อ...</span></span>
+    <button class="btn btn-white btn-sm" onclick="loadData()">รีเฟรช</button>
+    <button class="btn btn-green btn-sm" onclick="saveData()">บันทึก</button>
+    <button class="btn btn-blue btn-sm" onclick="exportExcel()">Export Excel</button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="summary">
+    <div class="scard"><div class="num" id="s-all" style="color:#1E3A5F">0</div><div class="lbl">โปรเจคทั้งหมด</div></div>
+    <div class="scard"><div class="num" id="s-ip" style="color:#1d4ed8">0</div><div class="lbl">In Progress</div></div>
+    <div class="scard"><div class="num" id="s-dn" style="color:#16a34a">0</div><div class="lbl">Done</div></div>
+    <div class="scard"><div class="num" id="s-ov" style="color:#dc2626">0</div><div class="lbl">Overdue</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <button class="btn btn-blue btn-sm" onclick="addRow()">+ เพิ่มโปรเจค</button>
+    </div>
+    <div style="font-size:12px;color:#aaa" id="save-status"></div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table id="tbl">
+      <colgroup>
+        <col><col><col><col><col><col><col><col><col>
+      </colgroup>
+      <thead>
+        <tr>
+          <th>โปรเจค</th>
+          <th>สถานะ</th>
+          <th>%</th>
+          <th>ผู้รับผิดชอบ</th>
+          <th>วันเริ่ม</th>
+          <th>Deadline</th>
+          <th>เสร็จจริง</th>
+          <th>หมายเหตุ / ปัญหา</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="9" class="loading">กำลังโหลดข้อมูลจาก Google Sheets...</td></tr>
+      </tbody>
+    </table>
+    <button class="add-row-btn" onclick="addRow()">+ เพิ่มโปรเจคใหม่</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMC_7qmLQic8nN2E-CglqEy43lwKgvttecUhZCRzQ6SZcNe-qY8EcasUS1YjTt27CpHA/exec";
+
+const SL = {inprogress:'In Progress',planning:'Planning',pending:'Pending',done:'Done',blocked:'Blocked'};
+const SC = {inprogress:'b-ip',planning:'b-pl',pending:'b-pd',done:'b-dn',blocked:'b-bl'};
+const PC = {inprogress:'#2980b9',planning:'#d97706',pending:'#94a3b8',done:'#16a34a',blocked:'#dc2626'};
+
+let rows = [];
+let dirty = false;
+
+function showToast(msg, duration=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function setConn(ok) {
+  document.getElementById('dot').style.background = ok ? '#4caf50' : '#f44336';
+  document.getElementById('conn-txt').textContent = ok ? 'เชื่อมต่อแล้ว' : 'ไม่สามารถเชื่อมต่อได้';
+}
+
+function fmtDate(v) {
+  if (!v) return '-';
+  if (v.includes('/')) return v;
+  const [y,m,d] = v.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function toInputDate(v) {
+  if (!v || v === '-') return '';
+  if (v.includes('-')) return v;
+  const [d,m,y] = v.split('/');
+  return `${y}-${m}-${d}`;
+}
+
+function dlWarn(dl, st) {
+  if (!dl || st === 'done') return '';
+  const now = new Date(); now.setHours(0,0,0,0);
+  const d = new Date(toInputDate(dl) || dl); d.setHours(0,0,0,0);
+  const diff = Math.round((d - now) / 86400000);
+  if (diff < 0) return `<div class="warn ov">เกิน deadline ${Math.abs(diff)} วัน</div>`;
+  if (diff <= 7) return `<div class="warn sn">เหลือ ${diff} วัน</div>`;
+  return '';
+}
+
+async function loadData() {
+  document.getElementById('tbody').innerHTML = '<tr><td colspan="9" class="loading">กำลังโหลดข้อมูล...</td></tr>';
+  try {
+    const res = await fetch(`${SCRIPT_URL}?action=getAll`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    rows = data.rows.length > 0 ? data.rows : getDefaultRows();
+    setConn(true);
+    render();
+    document.getElementById('updated-lbl').textContent = 'อัปเดต: ' + new Date().toLocaleString('th-TH');
+    showToast('โหลดข้อมูลสำเร็จ');
+  } catch(e) {
+    setConn(false);
+    rows = getDefaultRows();
+    render();
+    showToast('ไม่สามารถโหลดจาก Sheets ได้ — แสดงข้อมูลเริ่มต้น');
+  }
+}
+
+async function saveData() {
+  document.getElementById('save-status').textContent = 'กำลังบันทึก...';
+  try {
+    const res = await fetch(`${SCRIPT_URL}?action=save&data=${encodeURIComponent(JSON.stringify(rows))}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    dirty = false;
+    document.getElementById('save-status').textContent = 'บันทึกแล้ว ' + new Date().toLocaleTimeString('th-TH');
+    showToast('บันทึกสำเร็จ');
+  } catch(e) {
+    document.getElementById('save-status').textContent = 'บันทึกไม่สำเร็จ';
+    showToast('บันทึกไม่สำเร็จ กรุณาลองใหม่');
+  }
+}
+
+function getDefaultRows() {
+  return [
+    {name:'TBS Informative',status:'inprogress',pct:'60',owner:'-',start:'2026-04-01',deadline:'2026-04-24',done:'',note:'รอข้อมูลที่ถูกต้องจากทีม'},
+    {name:'AI Spaya',status:'inprogress',pct:'40',owner:'-',start:'2026-04-01',deadline:'2026-05-15',done:'',note:'Backend Line connected แล้ว'},
+    {name:'TBS Lead Management System',status:'planning',pct:'10',owner:'Billy',start:'2026-04-01',deadline:'2026-05-31',done:'',note:'รอ requirement ครบจาก Billy'},
+    {name:'TBS Admin',status:'pending',pct:'0',owner:'-',start:'',deadline:'',done:'',note:'ยังไม่เริ่ม'},
+    {name:'TBS HR',status:'pending',pct:'0',owner:'-',start:'',deadline:'',done:'',note:'ยังไม่เริ่ม'},
+    {name:'TBS Content',status:'pending',pct:'0',owner:'-',start:'',deadline:'',done:'',note:'ยังไม่เริ่ม'},
+  ];
+}
+
+function upd(i, k, v) {
+  rows[i][k] = v;
+  dirty = true;
+  updateSummary();
+  const dl = document.getElementById(`dl-warn-${i}`);
+  if (dl) dl.innerHTML = dlWarn(rows[i].deadline, rows[i].status);
+  const bar = document.getElementById(`bar-${i}`);
+  if (bar) { bar.style.width = Math.min(100, parseInt(v)||0) + '%'; bar.style.background = PC[rows[i].status] || '#2980b9'; }
+  document.getElementById('save-status').textContent = 'มีการแก้ไข — กด บันทึก';
+}
+
+function addRow() {
+  rows.push({name:'',status:'pending',pct:'0',owner:'',start:'',deadline:'',done:'',note:''});
+  render();
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('#tbody tr:last-child td input');
+    if (inputs[0]) inputs[0].focus();
+  }, 50);
+}
+
+function delRow(i) {
+  if (!confirm('ลบโปรเจคนี้?')) return;
+  rows.splice(i, 1);
+  dirty = true;
+  render();
+  document.getElementById('save-status').textContent = 'มีการแก้ไข — กด บันทึก';
+}
+
+function render() {
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  rows.forEach((r, i) => {
+    const pct = Math.min(100, Math.max(0, parseInt(r.pct) || 0));
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input value="${r.name||''}" placeholder="ชื่อโปรเจค" onchange="upd(${i},'name',this.value)"></td>
+      <td style="padding:8px 12px">
+        <select onchange="upd(${i},'status',this.value)" style="width:100%;border:none;background:transparent;font-size:13px;font-family:inherit;padding:0;cursor:pointer">
+          ${Object.entries(SL).map(([k,v])=>`<option value="${k}"${r.status===k?' selected':''}>${v}</option>`).join('')}
+        </select>
+      </td>
+      <td>
+        <input value="${r.pct||0}" style="text-align:center" onchange="upd(${i},'pct',this.value)">
+        <div class="pct-bar"><div class="pct-fill" id="bar-${i}" style="width:${pct}%;background:${PC[r.status]||'#2980b9'}"></div></div>
+      </td>
+      <td><input value="${r.owner||''}" placeholder="-" onchange="upd(${i},'owner',this.value)"></td>
+      <td><input type="date" value="${toInputDate(r.start)||''}" onchange="upd(${i},'start',this.value)"></td>
+      <td>
+        <input type="date" value="${toInputDate(r.deadline)||''}" onchange="upd(${i},'deadline',this.value)">
+        <div id="dl-warn-${i}">${dlWarn(r.deadline, r.status)}</div>
+      </td>
+      <td><input type="date" value="${toInputDate(r.done)||''}" onchange="upd(${i},'done',this.value)"></td>
+      <td><input value="${r.note||''}" placeholder="หมายเหตุ..." onchange="upd(${i},'note',this.value)"></td>
+      <td><button class="del-btn" onclick="delRow(${i})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  updateSummary();
+}
+
+function updateSummary() {
+  document.getElementById('s-all').textContent = rows.length;
+  document.getElementById('s-ip').textContent = rows.filter(r => r.status === 'inprogress').length;
+  document.getElementById('s-dn').textContent = rows.filter(r => r.status === 'done').length;
+  const now = new Date(); now.setHours(0,0,0,0);
+  document.getElementById('s-ov').textContent = rows.filter(r => {
+    if (!r.deadline || r.status === 'done') return false;
+    const d = new Date(toInputDate(r.deadline) || r.deadline); d.setHours(0,0,0,0);
+    return d < now;
+  }).length;
+}
+
+function exportExcel() {
+  const headers = ['โปรเจค','สถานะ','% Progress','ผู้รับผิดชอบ','วันเริ่ม','Deadline','เสร็จจริง','หมายเหตุ'];
+  const data = [
+    ['TBS Project Tracker'],
+    ['อัปเดต: ' + new Date().toLocaleString('th-TH')],
+    [],
+    headers,
+    ...rows.map(r => [
+      r.name, SL[r.status]||r.status, (r.pct||0)+'%', r.owner,
+      fmtDate(r.start), fmtDate(r.deadline), fmtDate(r.done), r.note
+    ])
+  ];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:28},{wch:14},{wch:12},{wch:16},{wch:13},{wch:13},{wch:13},{wch:36}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Tracker');
+  XLSX.writeFile(wb, `TBS_Tracker_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('Export Excel สำเร็จ');
+}
+
+window.addEventListener('beforeunload', e => {
+  if (dirty) e.returnValue = 'มีข้อมูลที่ยังไม่ได้บันทึก';
+});
+
+loadData();
+</script>
+</body>
+</html>
