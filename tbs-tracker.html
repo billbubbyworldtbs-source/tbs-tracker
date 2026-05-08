@@ -140,8 +140,35 @@ let rows=[],dirty=false,modalRowIdx=-1;
 
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function setConn(ok){document.getElementById('dot').style.background=ok?'#4caf50':'#f44336';document.getElementById('conn-txt').textContent=ok?'เชื่อมต่อแล้ว':'ไม่สามารถเชื่อมต่อได้';}
-function fmtDate(v){if(!v||v==='-')return'-';if(v.includes('/'))return v;const[y,m,d]=v.split('-');return`${d}/${m}/${y}`;}
-function toInputDate(v){if(!v||v==='-')return'';if(v.includes('-'))return v;const[d,m,y]=v.split('/');return`${y}-${m}-${d}`;}
+function fmtDate(v){
+  if(!v||v==='-'||v==='')return'-';
+  const d=parseAnyDate(v);
+  if(!d)return'-';
+  const dd=String(d.getDate()).padStart(2,'0');
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const yyyy=d.getFullYear();
+  return`${dd}/${mm}/${yyyy}`;
+}
+function parseAnyDate(v){
+  if(!v||v==='-'||v==='')return null;
+  // YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(v)){const[y,m,d]=v.split('-');return new Date(y,m-1,d);}
+  // DD/MM/YYYY
+  if(/^\d{2}\/\d{2}\/\d{4}$/.test(v)){const[d,m,y]=v.split('/');return new Date(y,m-1,d);}
+  // MM/DD/YYYY (Google Sheets default)
+  if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)){const parts=v.split('/');return new Date(parts[2],parts[0]-1,parts[1]);}
+  // Try native parse as fallback
+  const d=new Date(v);
+  return isNaN(d)?null:d;
+}
+function toInputDate(v){
+  if(!v||v==='-'||v==='')return'';
+  const d=parseAnyDate(v);
+  if(!d)return'';
+  const dd=String(d.getDate()).padStart(2,'0');
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  return`${d.getFullYear()}-${mm}-${dd}`;
+}
 function dlWarn(dl,st){
   if(!dl||st==='done')return'';
   const now=new Date();now.setHours(0,0,0,0);
